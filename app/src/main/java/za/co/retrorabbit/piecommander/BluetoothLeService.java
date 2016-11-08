@@ -211,9 +211,9 @@ public class BluetoothLeService extends IntentService {
         mBluetoothAdapter = mBluetoothManager.getAdapter();
         if (mBluetoothAdapter == null) {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
+
             return false;
         }
-
         return true;
     }
 

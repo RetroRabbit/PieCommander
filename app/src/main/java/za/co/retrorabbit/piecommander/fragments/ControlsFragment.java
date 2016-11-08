@@ -5,16 +5,13 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,12 +26,11 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import za.co.retrorabbit.piecommander.BluetoothLeService;
 import za.co.retrorabbit.piecommander.MainActivity;
 import za.co.retrorabbit.piecommander.R;
 import za.co.retrorabbit.piecommander.SampleGattAttributes;
-
-import static android.content.Context.BIND_AUTO_CREATE;
 
 public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
@@ -42,6 +38,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     @BindView(R.id.fragment_control_stick_analog_stick)
     AnalogStick analogStick;
+
 
     Toolbar toolbar;
 
@@ -266,5 +263,10 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
+    }
+
+    @OnClick(R.id.fragment_control_disconnect_button)
+    void disconnect() {
+        getCurrentGatt().close();
     }
 }
