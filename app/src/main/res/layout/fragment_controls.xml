@@ -4,10 +4,9 @@
     android:layout_height="match_parent"
     tools:context="za.co.retrorabbit.piecommander.fragments.ControlsFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
 
+    <com.devpaul.analogsticklib.AnalogStick
+        android:id="@+id/fragment_control_stick_analog_stick"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </FrameLayout>
