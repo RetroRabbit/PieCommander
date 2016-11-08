@@ -16,6 +16,7 @@
 
 package za.co.retrorabbit.piecommander;
 
+import android.app.IntentService;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -39,7 +40,7 @@ import java.util.UUID;
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
  */
-public class BluetoothLeService extends Service {
+public class BluetoothLeService extends IntentService {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
     private BluetoothManager mBluetoothManager;
@@ -114,6 +115,13 @@ public class BluetoothLeService extends Service {
         }
     };
 
+    /**
+     * Creates an IntentService.  Invoked by your subclass's constructor.
+     */
+    public BluetoothLeService() {
+        super("BluetoothService");
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         return super.onStartCommand(intent, flags, startId);
@@ -166,6 +174,11 @@ public class BluetoothLeService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+
     }
 
     @Override

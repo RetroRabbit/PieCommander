@@ -21,7 +21,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import za.co.retrorabbit.piecommander.MainActivity;
@@ -102,7 +101,7 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
                         mLEScanner.stopScan(mScanCallback);
 
                     }
-                    ((SwipeRefreshLayout)((MainActivity)context).viewPager.getRootView().findViewById(R.id.fragment_device_list_refresh)).setRefreshing(false);
+                    ((SwipeRefreshLayout) ((MainActivity) context).viewPager.getRootView().findViewById(R.id.fragment_device_list_refresh)).setRefreshing(false);
                 }
             }, SCAN_PERIOD);
             if (Build.VERSION.SDK_INT < 21) {
@@ -144,7 +143,7 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
 
     private void addDevice(BluetoothDevice device) {
         mValues.addOrUpdate(device.getAddress(), device);
-       // notifyItemInserted(getItemCount() - 1);
+        // notifyItemInserted(getItemCount() - 1);
         notifyDataSetChanged();
     }
 
@@ -176,7 +175,9 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
         public void populate(BluetoothDevice bluetoothDevice) {
             mDevice = bluetoothDevice;
             mIdView.setText(mDevice.getAddress());
-            mContentView.setText(mDevice.getName());
+
+            if (mDevice.getName() != null)
+                mContentView.setText(mDevice.getName());
         }
 
         @Override
