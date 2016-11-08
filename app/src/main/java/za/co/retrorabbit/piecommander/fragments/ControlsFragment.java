@@ -7,14 +7,15 @@ import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.devpaul.analogsticklib.AnalogStick;
 import com.devpaul.analogsticklib.OnAnalogMoveListener;
@@ -40,7 +41,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     AnalogStick analogStick;
 
 
-    Toolbar toolbar;
+    // Toolbar toolbar;
 
     private OnFragmentInteractionListener mListener;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
@@ -80,7 +81,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                toolbar.setTitle(resourceId);
+                //    toolbar.setTitle("CONNECTED");
+                Toast.makeText(getContext(), "CONNECTED", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -90,7 +92,9 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    toolbar.setTitle(data);
+                    // toolbar.setTitle(data);
+
+                    Toast.makeText(getContext(), data, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -138,6 +142,20 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
 
     public ControlsFragment() {
         // Required empty public constructor
@@ -163,7 +181,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_controls, container, false);
         ButterKnife.bind(this, view);
-        toolbar = (Toolbar) view.getRootView().findViewById(R.id.toolbar);
+        //   toolbar = (Toolbar) view.getRootView().findViewById(R.id.toolbar);
         analogStick.setOnAnalogMoveListner(this);
         return view;
     }
@@ -267,6 +285,6 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     @OnClick(R.id.fragment_control_disconnect_button)
     void disconnect() {
-        getCurrentGatt().close();
+        getBluetoothLeService().disconnect();
     }
 }

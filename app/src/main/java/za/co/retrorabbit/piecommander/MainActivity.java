@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
             if (!mBluetoothLeService.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
-               finish();
+                finish();
             }
             // Automatically connects to the device upon successful start-up initialization.
             mBluetoothLeService.connect(getCurrentDevice().getAddress());

@@ -40,7 +40,7 @@ import java.util.UUID;
  * Service for managing connection and data communication with a GATT server hosted on a
  * given Bluetooth LE device.
  */
-public class BluetoothLeService extends IntentService {
+public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
     private BluetoothManager mBluetoothManager;
@@ -115,18 +115,6 @@ public class BluetoothLeService extends IntentService {
         }
     };
 
-    /**
-     * Creates an IntentService.  Invoked by your subclass's constructor.
-     */
-    public BluetoothLeService() {
-        super("BluetoothService");
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return super.onStartCommand(intent, flags, startId);
-    }
-
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
         sendBroadcast(intent);
@@ -166,7 +154,7 @@ public class BluetoothLeService extends IntentService {
     }
 
     public class LocalBinder extends Binder {
-        public BluetoothLeService getService() {
+        BluetoothLeService getService() {
             return BluetoothLeService.this;
         }
     }
@@ -174,11 +162,6 @@ public class BluetoothLeService extends IntentService {
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
-    }
-
-    @Override
-    protected void onHandleIntent(Intent intent) {
-
     }
 
     @Override
@@ -211,9 +194,9 @@ public class BluetoothLeService extends IntentService {
         mBluetoothAdapter = mBluetoothManager.getAdapter();
         if (mBluetoothAdapter == null) {
             Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
-
             return false;
         }
+
         return true;
     }
 
