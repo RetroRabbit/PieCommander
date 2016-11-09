@@ -272,7 +272,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
         Observable.just(currentAngle)
                 .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
+                .observeOn(Schedulers.newThread())
                 .subscribe(new Action1<Float>() {
                     @Override
                     public void call(Float aFloat) {
@@ -360,7 +360,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         }
         Observable.just(dataView)
                 .subscribeOn(Schedulers.newThread())
-                .observeOn(AndroidSchedulers.mainThread())
+                .observeOn(Schedulers.newThread())
                 .subscribe(new Action1<byte[]>() {
                     @Override
                     public void call(byte[] bytes) {
