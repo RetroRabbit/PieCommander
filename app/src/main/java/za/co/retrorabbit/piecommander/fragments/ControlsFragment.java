@@ -251,7 +251,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
         switch (quadrant) {
             case TOP_LEFT:
-               moveCommand(1,1,1000);
+                moveCommand(127, 127, 1);
                 break;
         }
     }
@@ -298,6 +298,11 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     }
 
     private void sendToBluetoothService(byte[] dataView) {
+
+        if (getCurrentGatt() == null) {
+            Toast.makeText(this.getContext(), "Connect a robot", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         BluetoothGattCharacteristic out = getCurrentGatt().getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")).getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
 
