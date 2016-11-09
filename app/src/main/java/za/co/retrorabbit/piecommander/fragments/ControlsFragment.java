@@ -12,6 +12,7 @@ import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -249,17 +250,33 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
         switch (quadrant) {
             case TOP_LEFT:
-                byte[] value = new byte[20];
-                value[0] = (byte) (0);
-                value[1] = (byte) (0);
-                value[2] = (byte) (1);
-                value[3] = (byte) (1);
-                value[4] = (byte) (1);
-                value[5] = (byte) (1);
-                value[6] = (byte) (1);
-                value[7] = (byte) (1);
-         /*   mGattCharacteristics.set(0).setValue(value);
-                boolean status = getCurrentGatt().writeCharacteristic(charac);*/
+                byte[] value1 = new byte[]{0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x54, 0x00, 0x03, 0x00};
+
+                BluetoothGattCharacteristic[] chars = new BluetoothGattCharacteristic[]{
+
+                        getCurrentGatt().getServices().get(0).getCharacteristics().get(0),
+                        getCurrentGatt().getServices().get(0).getCharacteristics().get(1),
+                        getCurrentGatt().getServices().get(0).getCharacteristics().get(2),
+
+                        getCurrentGatt().getServices().get(1).getCharacteristics().get(0),
+
+                        getCurrentGatt().getServices().get(2).getCharacteristics().get(0),
+                        getCurrentGatt().getServices().get(2).getCharacteristics().get(1),
+                };
+
+                for (int i = 0; i < chars.length; i++) {
+                    chars[i].setValue(value1);
+                    chars[i].setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                    boolean gatt1 = getCurrentGatt().writeCharacteristic(chars[i]);
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    Log.i("asdsaas", "asddasda");
+                }
+
+
                 break;
         }
     }

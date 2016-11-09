@@ -30,7 +30,7 @@ import za.co.retrorabbit.salt.FilterableIndexedHashMap;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<BluetoothDeviceRecyclerViewAdapter.ViewHolder> {
 
-    private static final long SCAN_PERIOD = 10000;
+    private static final long SCAN_PERIOD = 3000;
     private Context context;
 
     private FilterableIndexedHashMap<String, BluetoothDevice> mValues = new FilterableIndexedHashMap<>();
