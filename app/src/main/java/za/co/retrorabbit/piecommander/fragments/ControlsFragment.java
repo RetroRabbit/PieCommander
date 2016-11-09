@@ -11,8 +11,8 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +30,10 @@ import java.util.UUID;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 import za.co.retrorabbit.piecommander.BluetoothLeService;
 import za.co.retrorabbit.piecommander.MainActivity;
 import za.co.retrorabbit.piecommander.R;
@@ -42,6 +46,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     @BindView(R.id.fragment_control_stick_analog_stick)
     AnalogStick analogStick;
 
+    int COMMAND_TIME = 300;
+    Handler handler;
 
     // Toolbar toolbar;
 
@@ -78,6 +84,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
             }
         }
     };
+    private float currentAngle;
 
     private void updateConnectionState(final int resourceId) {
         getActivity().runOnUiThread(new Runnable() {
@@ -175,6 +182,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        handler = new Handler();
+        processCommand();
     }
 
     @Override
@@ -243,7 +252,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     @Override
     public void onAnalogMovedGetAngle(float v) {
-
+        currentAngle = v;
     }
 
     @Override
@@ -251,10 +260,33 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
         switch (quadrant) {
             case TOP_LEFT:
-                moveCommand(127, 127, 1);
+                // moveCommand(127, 127, 1);
                 break;
+            case TOP_RIGHT:
+                //  stopCommand(0, 0, 1);
         }
     }
+
+
+    private void processCommand() {
+
+        Observable.just(currentAngle)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Float>() {
+                    @Override
+                    public void call(Float aFloat) {
+                        System.out.println("ANGLE : " + currentAngle);
+                        try {
+                            Thread.sleep(300);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        processCommand();
+                    }
+                });
+    }
+
 
     int commandIndex = -1;
 
@@ -297,24 +329,54 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         sendToBluetoothService(dataView);
     }
 
+    public void stopCommand(int speedLeft, int speedRight, int time) {
+
+        int commandIndex = incrementCommandIndex();
+        int commandBehaviour = 0;
+
+        char commandType = 'S'; // indicator M for move
+
+        //length of the command payload is 4 bytes header is always eight bytes
+        int commandLength = 8; //2 bytes
+
+        //create an array buffer of commandLength bytes
+        //create a dataview for the buffer
+        byte[] dataView = new byte[commandLength];
+
+        //header = bytes 0 to 7
+        dataView[0] = (byte) commandIndex;
+        dataView[1] = (byte) commandBehaviour;
+        dataView[2] = (byte) commandLength;
+        dataView[7] = (byte) commandType;
+
+        sendToBluetoothService(dataView);
+    }
+
     private void sendToBluetoothService(byte[] dataView) {
 
         if (getCurrentGatt() == null) {
             Toast.makeText(this.getContext(), "Connect a robot", Toast.LENGTH_SHORT).show();
             return;
         }
+        Observable.just(dataView)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<byte[]>() {
+                    @Override
+                    public void call(byte[] bytes) {
+                        BluetoothGattCharacteristic out = getCurrentGatt().getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")).getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
 
-        BluetoothGattCharacteristic out = getCurrentGatt().getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")).getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
-
-        out.setValue(dataView);
-        out.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-        boolean gatt1 = getCurrentGatt().writeCharacteristic(out);
-        try {
-            Thread.sleep(300);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Log.i("asdsaas", "asddasda");
+                        out.setValue(bytes);
+                        out.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                        boolean gatt1 = getCurrentGatt().writeCharacteristic(out);
+                       /* try {
+                            Thread.sleep(1000);
+                            stopCommand(0, 0, 0);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        } */
+                    }
+                });
 
     }
 
