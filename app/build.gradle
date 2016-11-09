@@ -45,7 +45,7 @@ dependencies {
     compile 'com.github.RetroRabbit.retrorabbit-spicerack:habanero:6138302a34'
     compile 'com.github.DeveloperPaul123:AnalogStickLibrary:1.0.0'
     compile 'io.reactivex:rxandroid:1.2.1'
-    compile 'io.reactivex:rxjava:1.1.6'
+    compile 'io.reactivex:rxjava:1.2.2'
 }
 
 

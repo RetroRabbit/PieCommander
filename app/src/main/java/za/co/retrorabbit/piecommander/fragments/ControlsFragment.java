@@ -31,7 +31,6 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import za.co.retrorabbit.piecommander.BluetoothLeService;
@@ -84,7 +83,6 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
             }
         }
     };
-    private float currentAngle;
 
     private void updateConnectionState(final int resourceId) {
         getActivity().runOnUiThread(new Runnable() {
@@ -234,25 +232,27 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         return ((MainActivity) getActivity()).getCurrentGatt();
     }
 
+    private MoveData moveData = new MoveData();
 
     @Override
-    public void onAnalogMove(float v, float v1) {
-
+    public void onAnalogMove(float x, float y) {
+        moveData.setMoveX(x);
+        moveData.setMoveY(y);
     }
 
     @Override
-    public void onAnalogMovedScaledX(float v) {
-
+    public void onAnalogMovedScaledX(float scaledX) {
+        moveData.setScaledX(scaledX);
     }
 
     @Override
-    public void onAnalogMovedScaledY(float v) {
-
+    public void onAnalogMovedScaledY(float scaledY) {
+        moveData.setScaledY(scaledY);
     }
 
     @Override
-    public void onAnalogMovedGetAngle(float v) {
-        currentAngle = v;
+    public void onAnalogMovedGetAngle(float angle) {
+        moveData.setAngle(angle);
     }
 
     @Override
@@ -270,13 +270,13 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     private void processCommand() {
 
-        Observable.just(currentAngle)
+        Observable.just(moveData)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(Schedulers.newThread())
-                .subscribe(new Action1<Float>() {
+                .subscribe(new Action1<MoveData>() {
                     @Override
-                    public void call(Float aFloat) {
-                        System.out.println("ANGLE : " + currentAngle);
+                    public void call(MoveData movedata) {
+                        System.out.println("MOVE DATA : \n" + moveData.toString());
                         try {
                             Thread.sleep(300);
                         } catch (InterruptedException e) {
