@@ -101,7 +101,8 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
                         mLEScanner.stopScan(mScanCallback);
 
                     }
-                    ((SwipeRefreshLayout) ((MainActivity) context).viewPager.getRootView().findViewById(R.id.fragment_device_list_refresh)).setRefreshing(false);
+                    if (((MainActivity) context).viewPager.getRootView().findViewById(R.id.fragment_device_list_refresh) != null)
+                        ((SwipeRefreshLayout) ((MainActivity) context).viewPager.getRootView().findViewById(R.id.fragment_device_list_refresh)).setRefreshing(false);
                 }
             }, SCAN_PERIOD);
             if (Build.VERSION.SDK_INT < 21) {

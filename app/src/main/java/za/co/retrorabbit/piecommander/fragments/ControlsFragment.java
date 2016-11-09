@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -38,27 +39,22 @@ import za.co.retrorabbit.piecommander.MainActivity;
 import za.co.retrorabbit.piecommander.R;
 import za.co.retrorabbit.piecommander.SampleGattAttributes;
 
-public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
+public class ControlsFragment extends Fragment implements OnAnalogMoveListener, View.OnTouchListener {
 
     private final static String TAG = ControlsFragment.class.getSimpleName();
-
+    private final String LIST_NAME = "NAME";
+    private final String LIST_UUID = "UUID";
     @BindView(R.id.fragment_control_stick_analog_stick)
     AnalogStick analogStick;
 
+    // Toolbar toolbar;
     int COMMAND_TIME = 300;
     Handler handler;
-
-    // Toolbar toolbar;
-
+    int commandIndex = -1;
     private OnFragmentInteractionListener mListener;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
-    private BluetoothGattCharacteristic mNotifyCharacteristic;
-
-    private final String LIST_NAME = "NAME";
-    private final String LIST_UUID = "UUID";
-
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
     // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
@@ -83,6 +79,31 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
             }
         }
     };
+    private BluetoothGattCharacteristic mNotifyCharacteristic;
+    private boolean sendCommands;
+    private MoveData moveData = new MoveData();
+
+    public ControlsFragment() {
+        // Required empty public constructor
+        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
+
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
+
+    public static ControlsFragment newInstance() {
+        ControlsFragment fragment = new ControlsFragment();
+        Bundle args = new Bundle();
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     private void updateConnectionState(final int resourceId) {
         getActivity().runOnUiThread(new Runnable() {
@@ -152,36 +173,21 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+        if (mGattUpdateReceiver != null)
+            getActivity().registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
     }
 
-    private static IntentFilter makeGattUpdateIntentFilter() {
-        final IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
-        return intentFilter;
-    }
-
-    public ControlsFragment() {
-        // Required empty public constructor
-        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-
-    }
-
-    public static ControlsFragment newInstance() {
-        ControlsFragment fragment = new ControlsFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (mGattUpdateReceiver != null)
+            getActivity().unregisterReceiver(mGattUpdateReceiver);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         handler = new Handler();
-        processCommand();
     }
 
     @Override
@@ -192,6 +198,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         ButterKnife.bind(this, view);
         //   toolbar = (Toolbar) view.getRootView().findViewById(R.id.toolbar);
         analogStick.setOnAnalogMoveListner(this);
+        analogStick.setOnTouchListener(this);
         return view;
     }
 
@@ -232,8 +239,6 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         return ((MainActivity) getActivity()).getCurrentGatt();
     }
 
-    private MoveData moveData = new MoveData();
-
     @Override
     public void onAnalogMove(float x, float y) {
         moveData.setMoveX(x);
@@ -267,8 +272,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         }
     }
 
-
-    private void processCommand() {
+    private void processCommands() {
 
         Observable.just(moveData)
                 .subscribeOn(Schedulers.newThread())
@@ -277,18 +281,21 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
                     @Override
                     public void call(MoveData movedata) {
                         System.out.println("MOVE DATA : \n" + moveData.toString());
+                        moveCommand(50, 50, COMMAND_TIME);
                         try {
                             Thread.sleep(300);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        processCommand();
+                        if (sendCommands)
+                            processCommands();
                     }
                 });
     }
 
-
-    int commandIndex = -1;
+    private void stopCommands() {
+        moveCommand(1, 1, COMMAND_TIME);
+    }
 
     public int incrementCommandIndex() {
         commandIndex++;
@@ -384,6 +391,25 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
         return ((MainActivity) getActivity()).getBluetoothLeService();
     }
 
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                sendCommands = true;
+                processCommands();
+                break;
+            case MotionEvent.ACTION_UP:
+                sendCommands = false;
+                stopCommands();
+        }
+        return false;
+    }
+
+    @OnClick(R.id.fragment_control_disconnect_button)
+    void disconnect() {
+        getBluetoothLeService().disconnect();
+    }
+
     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
@@ -400,8 +426,4 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
     }
 
-    @OnClick(R.id.fragment_control_disconnect_button)
-    void disconnect() {
-        getBluetoothLeService().disconnect();
-    }
 }
