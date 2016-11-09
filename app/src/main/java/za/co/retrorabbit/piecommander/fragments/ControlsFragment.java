@@ -25,6 +25,7 @@ import com.devpaul.analogsticklib.Quadrant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -250,35 +251,66 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
 
         switch (quadrant) {
             case TOP_LEFT:
-                byte[] value1 = new byte[]{0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x54, 0x00, 0x03, 0x00};
-
-                BluetoothGattCharacteristic[] chars = new BluetoothGattCharacteristic[]{
-
-                        getCurrentGatt().getServices().get(0).getCharacteristics().get(0),
-                        getCurrentGatt().getServices().get(0).getCharacteristics().get(1),
-                        getCurrentGatt().getServices().get(0).getCharacteristics().get(2),
-
-                        getCurrentGatt().getServices().get(1).getCharacteristics().get(0),
-
-                        getCurrentGatt().getServices().get(2).getCharacteristics().get(0),
-                        getCurrentGatt().getServices().get(2).getCharacteristics().get(1),
-                };
-
-                for (int i = 0; i < chars.length; i++) {
-                    chars[i].setValue(value1);
-                    chars[i].setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-                    boolean gatt1 = getCurrentGatt().writeCharacteristic(chars[i]);
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    Log.i("asdsaas", "asddasda");
-                }
-
-
+               moveCommand(1,1,1000);
                 break;
         }
+    }
+
+    int commandIndex = -1;
+
+    public int incrementCommandIndex() {
+        commandIndex++;
+        if (commandIndex > 255) {
+            commandIndex = 0;
+        }
+        return commandIndex;
+    }
+
+    public void moveCommand(int speedLeft, int speedRight, int time) {
+
+        int commandIndex = incrementCommandIndex();
+        int commandBehaviour = 0;
+
+        char commandType = 'M'; // indicator M for move
+
+        //length of the command payload is 6 bytes header is always eight bytes
+        int commandLength = 14; //2 bytes
+
+        //create an array buffer of commandLength bytes
+        //create a dataview for the buffer
+        byte[] dataView = new byte[commandLength];
+
+        //header = bytes 0 to 7
+        dataView[0] = (byte) commandIndex;
+        dataView[1] = (byte) commandBehaviour;
+        dataView[2] = (byte) commandLength;
+        dataView[7] = (byte) commandType;
+        //commandPayload = bytes 8 to 20
+        dataView[8] = (byte) speedLeft;
+        dataView[9] = (byte) speedRight;
+
+        dataView[10] = (byte) (speedLeft > 0 ? 0 : 1);
+        dataView[11] = (byte) (speedRight > 0 ? 0 : 1);
+
+        dataView[12] = (byte) time;
+
+        sendToBluetoothService(dataView);
+    }
+
+    private void sendToBluetoothService(byte[] dataView) {
+
+        BluetoothGattCharacteristic out = getCurrentGatt().getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e")).getCharacteristic(UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e"));
+
+        out.setValue(dataView);
+        out.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+        boolean gatt1 = getCurrentGatt().writeCharacteristic(out);
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Log.i("asdsaas", "asddasda");
+
     }
 
     public BluetoothLeService getBluetoothLeService() {
@@ -298,6 +330,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener {
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         void onFragmentInteraction(Uri uri);
+
     }
 
     @OnClick(R.id.fragment_control_disconnect_button)
