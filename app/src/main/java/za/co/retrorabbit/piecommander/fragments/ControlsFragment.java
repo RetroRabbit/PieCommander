@@ -197,6 +197,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         analogStick.setOnAnalogMoveListner(this);
         analogStick.setOnTouchListener(this);
         analogStick.setEnabled(false);
+        analogStick.setMaxYValue(1f);
+        analogStick.setMaxXValue(1f);
         return view;
     }
 
@@ -267,6 +269,9 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     @Override
     public void onAnalogMovedGetQuadrant(Quadrant quadrant) {
 
+        float speedFactor = moveData.scaledX > moveData.scaledY ? moveData.scaledX : moveData.scaledY;
+        int calcSpeed = (int) Math.round(128 * speedFactor);
+        int constSpeed = calcSpeed < 20 ? 25 : calcSpeed;
         switch (quadrant) {
             case TOP_LEFT:
                 angle = 90 - (moveData.angle - 180);
@@ -301,7 +306,6 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                     @Override
                     public void call(MoveData movedata) {
                         System.out.println("MOVE DATA : \n" + moveData.toString());
-
                         moveCommand(powerRight, powerLeft, COMMAND_TIME);
 
                         try {
