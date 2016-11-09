@@ -47,8 +47,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
     // Toolbar toolbar;
-    int COMMAND_TIME = 300;
-    float MAX_MOVE_SPEED = 64f;
+    int COMMAND_TIME = 100;
+    double CONSTSPEEDCHANGE = 0.55;
     Handler handler;
     int commandIndex = -1;
     private OnFragmentInteractionListener mListener;
@@ -261,8 +261,6 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     }
 
     int powerLeft = 1, powerRight = 1;
-    double constSpeedChange = 0.355;//0.69;
-    int constSpeed = 96;//32;//64
     float angle;
     int def;
 
@@ -275,14 +273,14 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         switch (quadrant) {
             case TOP_LEFT:
                 angle = 90 - (moveData.angle - 180);
-                def = (int) Math.round(angle * constSpeedChange);
+                def = (int) Math.round(angle * CONSTSPEEDCHANGE);
                 powerLeft = constSpeed - def;
                 powerRight = constSpeed + def;
 
                 break;
             case TOP_RIGHT:
                 angle = (moveData.angle - 270);
-                def = (int) Math.round(angle * constSpeedChange);
+                def = (int) Math.round(angle * CONSTSPEEDCHANGE);
                 powerLeft = constSpeed + def;
                 powerRight = constSpeed - def;
                 break;
@@ -309,7 +307,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                         moveCommand(powerRight, powerLeft, COMMAND_TIME);
 
                         try {
-                            Thread.sleep(300);
+                            Thread.sleep(COMMAND_TIME);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
