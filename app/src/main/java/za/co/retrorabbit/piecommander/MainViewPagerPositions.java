@@ -1,6 +1,5 @@
 package za.co.retrorabbit.piecommander;
 
-import android.support.annotation.DrawableRes;
 import android.support.annotation.StringRes;
 
 import java.util.HashMap;
@@ -10,8 +9,8 @@ import java.util.Map;
  * Created by Herman Barnardt on 2016-01-20.
  */
 public enum MainViewPagerPositions {
-    CONTROLS (0, R.string.main_tab_text_1),
-    DEVICES (1, R.string.main_tab_text_2);
+    DEVICES(0, R.string.main_tab_text_2),
+    CONTROLS(1, R.string.main_tab_text_1);
 
     private static Map<Integer, MainViewPagerPositions> map = new HashMap<Integer, MainViewPagerPositions>();
 

@@ -42,25 +42,19 @@ import za.co.retrorabbit.piecommander.SampleGattAttributes;
 public class ControlsFragment extends Fragment implements OnAnalogMoveListener, View.OnTouchListener {
 
     private final static String TAG = ControlsFragment.class.getSimpleName();
-    private final String LIST_NAME = "NAME";
-    private final String LIST_UUID = "UUID";
     @BindView(R.id.fragment_control_stick_analog_stick)
     AnalogStick analogStick;
-
+    private final String LIST_NAME = "NAME";
+    private final String LIST_UUID = "UUID";
     // Toolbar toolbar;
     int COMMAND_TIME = 300;
+    float MAX_MOVE_SPEED = 64f;
     Handler handler;
     int commandIndex = -1;
     private OnFragmentInteractionListener mListener;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
     private boolean mConnected = false;
-    // Handles various events fired by the Service.
-    // ACTION_GATT_CONNECTED: connected to a GATT server.
-    // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
-    // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
-    // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
-    //                        or notification operations.
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -68,9 +62,12 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
                 updateConnectionState(R.string.connected);
+                analogStick.setEnabled(true);
+
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
                 updateConnectionState(R.string.disconnected);
+                analogStick.setEnabled(false);
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(getBluetoothLeService().getSupportedGattServices());
@@ -110,7 +107,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
             @Override
             public void run() {
                 //    toolbar.setTitle("CONNECTED");
-                Toast.makeText(getContext(), "CONNECTED", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), getString(resourceId), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -199,6 +196,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         //   toolbar = (Toolbar) view.getRootView().findViewById(R.id.toolbar);
         analogStick.setOnAnalogMoveListner(this);
         analogStick.setOnTouchListener(this);
+        analogStick.setEnabled(false);
         return view;
     }
 
@@ -260,15 +258,37 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         moveData.setAngle(angle);
     }
 
+    int powerLeft = 1, powerRight = 1;
+    double constSpeedChange = 0.355;//0.69;
+    int constSpeed = 96;//32;//64
+    float angle;
+    int def;
+
     @Override
     public void onAnalogMovedGetQuadrant(Quadrant quadrant) {
 
         switch (quadrant) {
             case TOP_LEFT:
-                // moveCommand(127, 127, 1);
+                angle = 90 - (moveData.angle - 180);
+                def = (int) Math.round(angle * constSpeedChange);
+                powerLeft = constSpeed - def;
+                powerRight = constSpeed + def;
+
                 break;
             case TOP_RIGHT:
-                //  stopCommand(0, 0, 1);
+                angle = (moveData.angle - 270);
+                def = (int) Math.round(angle * constSpeedChange);
+                powerLeft = constSpeed + def;
+                powerRight = constSpeed - def;
+                break;
+            case BOTTOM_LEFT:
+                powerLeft = -1;
+                powerRight = -1;
+                break;
+            case BOTTOM_RIGHT:
+                powerLeft = -1;
+                powerRight = -1;
+                break;
         }
     }
 
@@ -281,7 +301,9 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                     @Override
                     public void call(MoveData movedata) {
                         System.out.println("MOVE DATA : \n" + moveData.toString());
-                        moveCommand(50, 50, COMMAND_TIME);
+
+                        moveCommand(powerRight, powerLeft, COMMAND_TIME);
+
                         try {
                             Thread.sleep(300);
                         } catch (InterruptedException e) {
@@ -359,6 +381,37 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         sendToBluetoothService(dataView);
     }
 
+    public void toggleCommand(ToggleFlag deviceFlags, ToggleState state, int onTime, int offTime) {
+        //toggle robot
+        int commandIndex = incrementCommandIndex();
+        int commandBehaviour = 0;
+
+        char commandType = 'T';
+
+        //length of the command payload is 7 bytes, header is always eight bytes
+        int commandLength = 15; //2 bytes
+
+        //create an array buffer of commandLength bytes
+        //create a dataview for the buffer
+        byte[] dataView = new byte[commandLength];
+
+
+        //header = bytes 0 to 7
+        //commandIndex
+        dataView[0] = (byte) commandIndex;
+        dataView[1] = (byte) commandBehaviour;
+        dataView[2] = (byte) commandLength;
+        dataView[7] = (byte) commandType;
+        //commandPayload = bytes 8 to 20
+        dataView[8] = (byte) deviceFlags.getValue();
+        dataView[10] = (byte) state.getValue();
+        dataView[11] = (byte) onTime;
+        dataView[13] = (byte) offTime;
+
+
+        sendToBluetoothService(dataView);
+    }
+
     private void sendToBluetoothService(byte[] dataView) {
 
         if (getCurrentGatt() == null) {
@@ -407,7 +460,8 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
 
     @OnClick(R.id.fragment_control_disconnect_button)
     void disconnect() {
-        getBluetoothLeService().disconnect();
+        if (getBluetoothLeService() != null)
+            getBluetoothLeService().disconnect();
     }
 
     /**
