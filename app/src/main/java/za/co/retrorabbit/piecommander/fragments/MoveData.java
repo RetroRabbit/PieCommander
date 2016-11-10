@@ -5,6 +5,7 @@ package za.co.retrorabbit.piecommander.fragments;
  */
 public class MoveData {
     float moveX, moveY, scaledX, scaledY, angle;
+    boolean online = false;
 
     public float getMoveX() {
         return moveX;
@@ -44,6 +45,14 @@ public class MoveData {
 
     public void setAngle(float angle) {
         this.angle = angle;
+    }
+
+    public boolean isOnline() {
+        return online;
+    }
+
+    public void setOnline(boolean online) {
+        this.online = online;
     }
 
     @Override

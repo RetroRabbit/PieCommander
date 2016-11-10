@@ -1,5 +1,6 @@
-package za.co.retrorabbit.piecommander;
+package za.co.retrorabbit.piecommander.views.main;
 
+import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -17,21 +18,33 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import za.co.retrorabbit.piecommander.R;
 import za.co.retrorabbit.piecommander.fragments.ControlsFragment;
 import za.co.retrorabbit.piecommander.fragments.DeviceFragment;
+import za.co.retrorabbit.piecommander.views.main.adapter.MainTabAdapter;
 
 public class MainActivity extends AppCompatActivity implements ControlsFragment.OnFragmentInteractionListener, DeviceFragment.OnListFragmentInteractionListener {
     private final static String TAG = MainActivity.class.getSimpleName();
+    private static final int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 2000;
 
     private int REQUEST_ENABLE_BT = 1;
 
@@ -44,9 +57,9 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
     private BluetoothDevice mDevice;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothGatt mGatt;
-
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
     private BluetoothLeService mBluetoothLeService;
-
     // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
@@ -78,6 +91,125 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
                     Toast.LENGTH_SHORT).show();
             finish();
         }
+        mAuth = FirebaseAuth.getInstance();
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user != null) {
+                    // User is signed in
+                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+                    searchDevices();
+                } else {
+                    // User is signed out
+                    Log.d(TAG, "onAuthStateChanged:signed_out");
+                }
+                // ...
+            }
+        };
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                    checkAndSignIn();
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
+    private void checkAndSignIn() {
+
+        if (mAuth.getCurrentUser() == null) {
+            mAuth.signInAnonymously()
+                    .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
+                            Log.d(TAG, "signInAnonymously:onComplete:" + task.isSuccessful());
+
+                            // If sign in fails, display a message to the user. If sign in succeeds
+                            // the auth state listener will be notified and logic to handle the
+                            // signed in user can be handled in the listener.
+                            if (!task.isSuccessful()) {
+                                Log.w(TAG, "signInAnonymously", task.getException());
+                                Toast.makeText(MainActivity.this, "Authentication failed.",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+
+                            // ...
+                        }
+                    });
+        } else {
+            searchDevices();
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            checkAndSignIn();
+        } else {
+            // Here, thisActivity is the current activity
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                // Should we show an explanation?
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION)) {
+
+                    // Show an expanation to the user *asynchronously* -- don't block
+                    // this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+
+                } else {
+
+                    // No explanation needed, we can request the permission.
+
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                            MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+
+                    // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                    // app-defined int constant. The callback method gets the
+                    // result of the request.
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthListener != null) {
+            mAuth.removeAuthStateListener(mAuthListener);
+        }
+    }
+
+    private void searchDevices() {
+
         final BluetoothManager bluetoothManager =
                 (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -85,10 +217,34 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
         if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        } else {
+            bindAdapters();
         }
+
+
+    }
+
+    private void bindAdapters() {
 
         viewPager.setAdapter(new MainTabAdapter(getSupportFragmentManager(), this));
         tabLayout.setupWithViewPager(viewPager);
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                ((ControlsFragment)getSupportFragmentManager().getFragments().get(1)).bindReferences();
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
+
     }
 
     @Override
@@ -109,6 +265,7 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
             Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
             bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
             viewPager.setCurrentItem(1, true);
+
         }
     }
 
@@ -123,6 +280,8 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
                 //Bluetooth not enabled.
                 finish();
                 return;
+            } else {
+                bindAdapters();
             }
         }
         super.onActivityResult(requestCode, resultCode, data);

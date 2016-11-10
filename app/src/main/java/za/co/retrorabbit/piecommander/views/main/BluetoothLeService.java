@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package za.co.retrorabbit.piecommander;
+package za.co.retrorabbit.piecommander.views.main;
 
-import android.app.IntentService;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -35,6 +34,8 @@ import android.util.Log;
 
 import java.util.List;
 import java.util.UUID;
+
+import za.co.retrorabbit.piecommander.SampleGattAttributes;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a

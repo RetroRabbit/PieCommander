@@ -60,8 +60,8 @@ public class DeviceFragment extends Fragment implements SwipeRefreshLayout.OnRef
         ButterKnife.bind(this, view);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(view.getContext()));
-        recyclerView.setAdapter(new BluetoothDeviceRecyclerViewAdapter(this.getContext(), mListener));
         swipeRefreshLayout.setOnRefreshListener(this);
+        searchDevices();
         return view;
     }
 
@@ -91,6 +91,10 @@ public class DeviceFragment extends Fragment implements SwipeRefreshLayout.OnRef
     @Override
     public void onRefresh() {
         ((BluetoothDeviceRecyclerViewAdapter)recyclerView.getAdapter()).scanLeDevice(true);
+    }
+
+    public void searchDevices() {
+        recyclerView.setAdapter(new BluetoothDeviceRecyclerViewAdapter(this.getContext(), mListener));
     }
 
     /**

@@ -1,4 +1,4 @@
-package za.co.retrorabbit.piecommander;
+package za.co.retrorabbit.piecommander.views.main.adapter;
 
 import android.content.Context;
 import android.support.v4.app.Fragment;

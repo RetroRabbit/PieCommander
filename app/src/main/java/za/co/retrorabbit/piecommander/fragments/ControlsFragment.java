@@ -12,7 +12,9 @@ import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -22,6 +24,13 @@ import android.widget.Toast;
 import com.devpaul.analogsticklib.AnalogStick;
 import com.devpaul.analogsticklib.OnAnalogMoveListener;
 import com.devpaul.analogsticklib.Quadrant;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,10 +43,10 @@ import butterknife.OnClick;
 import rx.Observable;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
-import za.co.retrorabbit.piecommander.BluetoothLeService;
-import za.co.retrorabbit.piecommander.MainActivity;
 import za.co.retrorabbit.piecommander.R;
 import za.co.retrorabbit.piecommander.SampleGattAttributes;
+import za.co.retrorabbit.piecommander.views.main.BluetoothLeService;
+import za.co.retrorabbit.piecommander.views.main.MainActivity;
 
 public class ControlsFragment extends Fragment implements OnAnalogMoveListener, View.OnTouchListener {
 
@@ -47,10 +56,12 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
     // Toolbar toolbar;
-    int COMMAND_TIME = 100;
-    double CONSTSPEEDCHANGE = 0.55;
-    Handler handler;
-    int commandIndex = -1;
+    private int COMMAND_TIME = 100;
+    private double CONSTSPEEDCHANGE = 0.55;
+    private Handler handler;
+    private int commandIndex = -1;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+
     private OnFragmentInteractionListener mListener;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
@@ -181,10 +192,30 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
             getActivity().unregisterReceiver(mGattUpdateReceiver);
     }
 
+    public DatabaseReference dataReference;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         handler = new Handler();
+
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user != null) {
+                    // User is signed in
+                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+
+                } else {
+                    // User is signed out
+                    Log.d(TAG, "onAuthStateChanged:signed_out");
+                }
+                // ...
+            }
+        };
+
     }
 
     @Override
@@ -200,6 +231,30 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         analogStick.setMaxYValue(1f);
         analogStick.setMaxXValue(1f);
         return view;
+    }
+
+    public void bindReferences() {
+        if (dataReference != null || getCurrentDevice() == null)
+            return;
+
+        dataReference = FirebaseDatabase.getInstance().getReference().child("robot").child(getCurrentDevice().getName());
+        dataReference.setValue(moveData);
+        dataReference.keepSynced(true);
+        dataReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                moveData = dataSnapshot.getValue(MoveData.class);
+                if (moveData.isOnline())
+                    processCommands();
+                else
+                    stopCommands();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
     // TODO: Rename method, update argument and hook method into UI event
@@ -248,6 +303,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     @Override
     public void onAnalogMovedScaledX(float scaledX) {
         moveData.setScaledX(scaledX);
+
     }
 
     @Override
@@ -264,6 +320,22 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     float angle;
     int def;
 
+
+    private void manualCalculate() {
+
+        float angle = moveData.angle;
+
+        if (angle > 0 && angle <= 90)
+            onAnalogMovedGetQuadrant(Quadrant.BOTTOM_RIGHT);
+        else if (angle > 90 && angle <= 180)
+            onAnalogMovedGetQuadrant(Quadrant.BOTTOM_LEFT);
+        else if (angle > 180 && angle <= 270)
+            onAnalogMovedGetQuadrant(Quadrant.TOP_LEFT);
+        else if (angle > 270 && angle <= 360)
+            onAnalogMovedGetQuadrant(Quadrant.TOP_RIGHT);
+
+    }
+
     @Override
     public void onAnalogMovedGetQuadrant(Quadrant quadrant) {
 
@@ -274,7 +346,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
             case TOP_LEFT:
                 angle = 90 - (moveData.angle - 180);
                 def = (int) Math.round(angle * CONSTSPEEDCHANGE);
-                powerLeft = constSpeed - def;
+                powerLeft =  constSpeed - def;
                 powerRight = constSpeed + def;
 
                 break;
@@ -304,6 +376,10 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                     @Override
                     public void call(MoveData movedata) {
                         System.out.println("MOVE DATA : \n" + moveData.toString());
+
+                        if (movedata.isOnline())
+                            manualCalculate();
+
                         moveCommand(powerRight, powerLeft, COMMAND_TIME);
 
                         try {
@@ -311,11 +387,12 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        if (sendCommands)
+                        if (sendCommands || movedata.isOnline())
                             processCommands();
                     }
                 });
     }
+
 
     private void stopCommands() {
         moveCommand(1, 1, COMMAND_TIME);
@@ -451,10 +528,13 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 sendCommands = true;
+                moveData.setOnline(false);
                 processCommands();
+
                 break;
             case MotionEvent.ACTION_UP:
                 sendCommands = false;
+                moveData.setOnline(false);
                 stopCommands();
         }
         return false;

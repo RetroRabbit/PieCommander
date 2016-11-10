@@ -1,9 +1,11 @@
-package za.co.retrorabbit.piecommander;
+package za.co.retrorabbit.piecommander.views.main.adapter;
 
 import android.support.annotation.StringRes;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import za.co.retrorabbit.piecommander.R;
 
 /**
  * Created by Herman Barnardt on 2016-01-20.

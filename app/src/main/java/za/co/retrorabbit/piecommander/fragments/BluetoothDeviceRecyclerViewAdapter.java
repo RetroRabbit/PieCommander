@@ -23,8 +23,8 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import za.co.retrorabbit.piecommander.MainActivity;
 import za.co.retrorabbit.piecommander.R;
+import za.co.retrorabbit.piecommander.views.main.MainActivity;
 import za.co.retrorabbit.salt.FilterableIndexedHashMap;
 
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -43,6 +43,7 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
     private List<ScanFilter> filters;
 
     private final DeviceFragment.OnListFragmentInteractionListener mListener;
+    private ScanCallback mScanCallback;
 
     public BluetoothDeviceRecyclerViewAdapter(Context context, DeviceFragment.OnListFragmentInteractionListener listener) {
         this.context = context;
@@ -57,6 +58,35 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
                     .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .build();
             filters = new ArrayList<ScanFilter>();
+        }
+        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
+        settings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
+        filters = new ArrayList<ScanFilter>();
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            mScanCallback = new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    Log.i("callbackType", String.valueOf(callbackType));
+                    Log.i("result", result.toString());
+                    BluetoothDevice btDevice = result.getDevice();
+                    addDevice(btDevice);
+                }
+
+                @Override
+                public void onBatchScanResults(List<ScanResult> results) {
+                    for (ScanResult sr : results) {
+                        Log.i("ScanResult - Results", sr.toString());
+                    }
+                }
+
+                @Override
+                public void onScanFailed(int errorCode) {
+                    Log.e("Scan Failed", "Error Code: " + errorCode);
+                }
+            };
         }
         scanLeDevice(true);
     }
@@ -119,28 +149,6 @@ public class BluetoothDeviceRecyclerViewAdapter extends RecyclerView.Adapter<Blu
         }
     }
 
-
-    private ScanCallback mScanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            Log.i("callbackType", String.valueOf(callbackType));
-            Log.i("result", result.toString());
-            BluetoothDevice btDevice = result.getDevice();
-            addDevice(btDevice);
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            for (ScanResult sr : results) {
-                Log.i("ScanResult - Results", sr.toString());
-            }
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            Log.e("Scan Failed", "Error Code: " + errorCode);
-        }
-    };
 
     private void addDevice(BluetoothDevice device) {
         mValues.addOrUpdate(device.getAddress(), device);
