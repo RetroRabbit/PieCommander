@@ -341,7 +341,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
 
         float speedFactor = moveData.scaledX > moveData.scaledY ? moveData.scaledX : moveData.scaledY;
         int calcSpeed = (int) Math.round(128 * speedFactor);
-        int constSpeed = calcSpeed < 20 ? 25 : calcSpeed;
+        int constSpeed = calcSpeed < 60 ? 65 : calcSpeed;
         switch (quadrant) {
             case TOP_LEFT:
                 angle = 90 - (moveData.angle - 180);
