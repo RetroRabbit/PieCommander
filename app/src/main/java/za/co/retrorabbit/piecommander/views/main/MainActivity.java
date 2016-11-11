@@ -263,6 +263,11 @@ public class MainActivity extends AppCompatActivity implements ControlsFragment.
         if (mGatt == null) {
             mGatt = device.connectGatt(this, false, gattCallback);
             Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
             viewPager.setCurrentItem(1, true);
 

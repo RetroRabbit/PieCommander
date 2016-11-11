@@ -346,7 +346,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
             case TOP_LEFT:
                 angle = 90 - (moveData.angle - 180);
                 def = (int) Math.round(angle * CONSTSPEEDCHANGE);
-                powerLeft =  constSpeed - def;
+                powerLeft = constSpeed - def;
                 powerRight = constSpeed + def;
 
                 break;
@@ -380,7 +380,7 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
                         if (movedata.isOnline())
                             manualCalculate();
 
-                        moveCommand(powerRight, powerLeft, COMMAND_TIME);
+                        moveCommand(Math.min(powerRight, 127), Math.min(powerLeft, 127), COMMAND_TIME);
 
                         try {
                             Thread.sleep(COMMAND_TIME);
@@ -544,6 +544,14 @@ public class ControlsFragment extends Fragment implements OnAnalogMoveListener, 
     void disconnect() {
         if (getBluetoothLeService() != null)
             getBluetoothLeService().disconnect();
+    }
+
+    @OnClick(R.id.fragment_control_stop_button)
+    void stop() {
+        stopCommands();
+        stopCommands();
+        stopCommands();
+        stopCommands();
     }
 
     /**

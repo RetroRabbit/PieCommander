@@ -12,10 +12,22 @@
         android:layout_alignParentTop="true" />
 
     <Button
-        android:id="@+id/fragment_control_disconnect_button"
+        android:id="@+id/fragment_control_stop_button"
+        style="@style/Widget.AppCompat.Button.Borderless"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/fragment_control_stick_analog_stick"
         android:layout_gravity="bottom"
+        android:background="@color/red_400"
+        android:text="STOP" />
+
+    <Button
+        android:id="@+id/fragment_control_disconnect_button"
+        style="@style/Widget.AppCompat.Button.Borderless"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/fragment_control_stop_button"
+        android:layout_gravity="bottom"
+        android:background="@color/yellow_500"
         android:text="Disconnect" />
 </RelativeLayout>
